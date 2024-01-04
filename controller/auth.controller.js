@@ -60,8 +60,62 @@ export const signin=async(req,res,next)=>{
       console.log('catch');
       next(error)
     }
-
-
-
-    
 }
+
+
+
+export const google = async (req, res, next) => {
+  try {
+    console.log("inside try");
+    console.log("email",req.body.email);
+    const user = await User.findOne({ email: req.body.email });
+    if (user) {
+      console.log("inside eif");
+      const token = generateJwtToken({ id: user._id },process.env.JWT_SECRET)
+      console.log("token inside if",token);
+      const { password: hashedPassword, ...rest } = user._doc;
+      const expiryDate = new Date(Date.now() + 3600000); // 1 hour
+      res
+        .cookie('access_token', token, {
+          httpOnly: true,
+          expires: expiryDate,
+        })
+        .status(200)
+        .json(rest);
+    } else {
+      console.log("isnide else");
+      const generatedPassword =
+        Math.random().toString(36).slice(-8) +
+        Math.random().toString(36).slice(-8);
+        console.log("generated password",generatedPassword);
+      const hashedPassword = await hashing(generatedPassword);
+      const newUser = new User({
+        username:
+          req.body.name.split(' ').join('').toLowerCase() +
+          Math.random().toString(36).slice(-8),
+        email: req.body.email,
+        password: hashedPassword,
+        profilePicture: req.body.photo,
+      });
+
+
+      console.log("generated user name",newUser.username);
+      await newUser.save();
+      const token = generateJwtToken({ id: newUser._id },process.env.JWT_SECRET)
+      console.log("inside else token",token);
+      const { password: hashedPassword2, ...rest } = newUser._doc;
+      const expiryDate = new Date(Date.now() + 3600000); // 1 hour
+      res
+        .cookie('access_token', token, {
+          httpOnly: true,
+          expires: expiryDate,
+        })
+        .status(200)
+        .json(rest);
+    }
+  } catch (error) {
+    console.log("inside catch");
+
+    next(error);
+  }
+};
