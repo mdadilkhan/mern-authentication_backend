@@ -15,6 +15,11 @@ const hashing = async (plaintextPassword) => {
     }
   };
   
+
+function generateJwtToken(payload, secretKey) {
+    const token = jwt.sign(payload, secretKey);
+    return token;
+  }
 export const signup=async(req,res,next)=>{
     console.log(req.body);
      const {email,password,username}=req.body;
@@ -34,10 +39,7 @@ export const signup=async(req,res,next)=>{
 
 } 
 
-function generateJwtToken(payload, secretKey) {
-  const token = jwt.sign(payload, secretKey);
-  return token;
-}
+
 
 export const signin=async(req,res,next)=>{
     const {email,password}=req.body;
@@ -52,10 +54,17 @@ export const signin=async(req,res,next)=>{
       const token = generateJwtToken({ id: validUser._id },process.env.JWT_SECRET)
       const expiryDate = new Date(Date.now() + 3600000);
       const {password:hashedPassword,...rest}=validUser._doc
+ 
+     console.log("helo");
       res
-      .cookie('access_token', token, { httpOnly: true, expires: expiryDate })
-      .status(200) 
-      .json(rest);
+      .cookie("access_token", token, {
+        expires: expiryDate,
+        httpOnly: true,
+        sameSite: "None",
+        secure: true,
+      })
+      .status(200)
+      .send({ success: true, rest });
     } catch (error) {
       console.log('catch');
       next(error)
@@ -79,6 +88,8 @@ export const google = async (req, res, next) => {
         .cookie('access_token', token, {
           httpOnly: true,
           expires: expiryDate,
+          sameSite: "None",
+          secure: true,
         })
         .status(200)
         .json(rest);
@@ -118,4 +129,9 @@ export const google = async (req, res, next) => {
 
     next(error);
   }
+};
+
+
+export const signout = (req, res) => {
+  res.clearCookie('access_token').status(200).json('Signout success!');
 };
